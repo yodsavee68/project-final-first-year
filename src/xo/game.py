@@ -311,13 +311,14 @@ class GameController(Pygame):
             STATE_PLAYING_PVE,
             STATE_PLAYING_PVP_HOST,
             STATE_PLAYING_PVP_CLIENT,
+            STATE_GAME_OVER,
         ):
             self.screen.fill(BG_COLOR)
 
-            # Compute moves to highlight
+            # Compute moves to highlight (only if not game over)
             valid_normal_cells = []
             valid_eat_cells = []
-            if self.selected_size is not None:
+            if self.state != STATE_GAME_OVER and self.selected_size is not None:
                 active_can_eat = self.can_eat[self.current_turn]
                 if self.selected_from_board:
                     fr, fc = self.selected_from_board
@@ -362,8 +363,10 @@ class GameController(Pygame):
                 self.inv_p1, self.inv_p2, self.current_turn, self.selected_size
             )
 
-            # Turn status text
-            if self.state == STATE_PLAYING_PVP_HOST and not self.network.connected:
+            # Turn status/Game over text
+            if self.state == STATE_GAME_OVER:
+                self.ui.draw_game_over(self.winner, self.win_reason, mouse_pos)
+            elif self.state == STATE_PLAYING_PVP_HOST and not self.network.connected:
                 self.ui.draw_text(
                     "Waiting for Client to connect...",
                     self.ui.font_m,
@@ -414,9 +417,6 @@ class GameController(Pygame):
                     SCREEN_WIDTH // 2,
                     30,
                 )
-
-        elif self.state == STATE_GAME_OVER:
-            self.ui.draw_game_over(self.winner, self.win_reason, mouse_pos)
 
         pygame.display.flip()
 
@@ -634,6 +634,11 @@ class GameController(Pygame):
                                     )
                                 self.selected_size = None
                                 self.selected_from_board = None
+
+        elif self.state == STATE_GAME_OVER:
+            action = self.ui.get_game_over_click(mouse_pos)
+            if action == STATE_MENU:
+                self.state = STATE_MENU
 
     def check_game_over(self):
         win_res = self.board.check_win()
